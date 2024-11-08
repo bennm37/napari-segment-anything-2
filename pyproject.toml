@@ -69,11 +69,11 @@ where = ["src"]
 version = {attr = "napari_segment_anything_2.__init__.__version__"}
 
 [tool.black]
-line-length = 79
+line-length = 112
 target-version = ['py38', 'py39', 'py310']
 
 [tool.ruff]
-line-length = 79
+line-length = 112
 lint.select = [
     "E", "F", "W", #flake8
     "UP", # pyupgrade

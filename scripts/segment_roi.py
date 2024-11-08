@@ -82,11 +82,7 @@ def show_points(coords, labels, ax, marker_size=200):
 def show_box(box, ax):
     x0, y0 = box[0], box[1]
     w, h = box[2] - box[0], box[3] - box[1]
-    ax.add_patch(
-        plt.Rectangle(
-            (x0, y0), w, h, edgecolor="green", facecolor=(0, 0, 0, 0), lw=2
-        )
-    )
+    ax.add_patch(plt.Rectangle((x0, y0), w, h, edgecolor="green", facecolor=(0, 0, 0, 0), lw=2))
 
 
 def natural_key(text):
@@ -94,9 +90,7 @@ def natural_key(text):
 
 
 def get_frame_names(folder, ext=[".jpg", ".jpeg"]):
-    frame_names = [
-        p for p in os.listdir(folder) if os.path.splitext(p)[-1] in ext
-    ]
+    frame_names = [p for p in os.listdir(folder) if os.path.splitext(p)[-1] in ext]
     frame_names.sort(key=natural_key)
     return frame_names
 
@@ -121,30 +115,43 @@ def segment_roi(
     cfg=f"/{SAM2_ROOT}/sam2/configs/sam2.1/sam2.1_hiera_l.yaml",
 ):
     from sam2.build_sam import build_sam2_video_predictor
-
     assert os.path.exists(cfg)
     predictor = build_sam2_video_predictor(cfg, checkpoint, device=device)
     tif_to_jpg(video_dir)
     video_dir = f"{video_dir}/jpgs"
     inference_state = predictor.init_state(video_path=video_dir)
-    predictor.add_new_points_or_box(
-        inference_state=inference_state,
-        frame_idx=0,
-        obj_id=1,
-        points=points,
-        labels=labels,
-    )
-    video_segments = (
-        {}
-    )  # video_segments contains the per-frame segmentation results
+    if points.shape[1] == 2:
+        predictor.add_new_points_or_box(
+            inference_state=inference_state,
+            frame_idx=0,
+            obj_id=1,
+            points=points,
+            labels=labels,
+        )
+    elif points.shape[1] == 3:
+        frames = points[:, 0].astype(int)
+        unique_frames = np.unique(frames)
+        for uf in unique_frames:
+            frame_points = points[frames == uf, 1:]
+            frame_labels = labels[frames == uf]
+            predictor.add_new_points_or_box(
+                inference_state=inference_state,
+                frame_idx=uf,
+                obj_id=1,
+                points=frame_points,
+                labels=frame_labels,
+            )
+    else:
+        raise ValueError("points must have shape (2,) or (3,)")
+
+    video_segments = {}  # video_segments contains the per-frame segmentation results
     for (
         out_frame_idx,
         out_obj_ids,
         out_mask_logits,
     ) in predictor.propagate_in_video(inference_state):
         video_segments[out_frame_idx] = {
-            out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy()
-            for i, out_obj_id in enumerate(out_obj_ids)
+            out_obj_id: (out_mask_logits[i] > 0.0).cpu().numpy() for i, out_obj_id in enumerate(out_obj_ids)
         }
     return video_segments
 
@@ -160,7 +167,7 @@ def load(path):
 
 
 if __name__ == "__main__":
-    video_dir = "/Users/nicholb/Documents/data/organoid_data/testcase"
+    video_dir = "/Users/nicholb/Documents/data/organoid_data/testcase_small"
     results_dir = f"{video_dir}/results"
     if not os.path.exists(results_dir):
         os.mkdir(results_dir)

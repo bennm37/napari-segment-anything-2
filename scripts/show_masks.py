@@ -5,6 +5,8 @@ from PIL import Image
 import numpy as np
 from napari import Viewer, run
 
+CYAN = {0: [0, 0, 0, 0], 1: [0, 0.8, 0.8, 0.5]}
+
 
 def animate(images, masks):
     fig, ax = plt.subplots()
@@ -29,18 +31,17 @@ def get_images(video_dir):
     return images
 
 
-def get_masks(video_dir):
-    results_dir = f"{video_dir}/results"
-    video_segments = load(f"{results_dir}/video_segments.pkl")
+def get_masks(filename):
+    video_segments = load(filename)
     masks = [video_segments[i][1] for i in range(len(video_segments))]
     return masks
 
 
-def show_masks(video_dir):
+def show_masks(video_dir, name="video_segments.pkl"):
     viewer = Viewer()
     viewer.open(video_dir)
-    masks = get_masks(video_dir)
-    viewer.add_labels(np.array(masks)[:, 0], name="SAM masks")
+    masks = get_masks(f"{video_dir}/results/{name}")
+    viewer.add_labels(np.array(masks)[:, 0], name="SAM masks", colormap=CYAN)
     return viewer
 
 
