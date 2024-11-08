@@ -3,6 +3,8 @@ from typing import Any, Generator, Optional, Tuple
 import napari
 import numpy as np
 import pandas as pd
+import os
+os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 import torch
 from hydra import initialize_config_module
 from hydra.core.global_hydra import GlobalHydra
@@ -128,7 +130,7 @@ class SAM2Widget(Container):
 
     def _load_model(self, model_type: str) -> None:
         self._predictor = build_sam2_video_predictor(
-            model_type, get_weights_path(model_type)
+            model_type, get_weights_path(model_type), device=self._device
         )
         self._predictor.fill_hole_area = 0
         self._mask_generator = SAM2AutomaticMaskGenerator(self._predictor)
@@ -299,7 +301,8 @@ class SAM2Widget(Container):
             image = image / image.max()
 
         image = util.img_as_float(image)
-        init_frame = image[-1].astype(np.float32)
+        init_frame = image[0].astype(np.float32)
+        # init_frame = image[-1].astype(np.float32) # when is this relevant??
 
         self._mask_layer.data = np.zeros(
             (1, *init_frame.shape[-3:-1]), dtype=int
