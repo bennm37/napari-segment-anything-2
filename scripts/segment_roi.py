@@ -104,6 +104,7 @@ def tif_to_jpg(folder):
         img = Image.open(f"{folder}/{frame}")
         jpg_frame = f"{i+1}".zfill(6) + ".jpg"
         img.save(f"{jpg_folder}/{jpg_frame}")
+    return jpg_folder
 
 
 def segment_roi(
@@ -120,8 +121,9 @@ def segment_roi(
     tif_to_jpg(video_dir)
     video_dir = f"{video_dir}/jpgs"
     inference_state = predictor.init_state(video_path=video_dir)
+    predictor.reset_state(inference_state)
     if points.shape[1] == 2:
-        predictor.add_new_points_or_box(
+        _, _, out_mask_logits = predictor.add_new_points_or_box(
             inference_state=inference_state,
             frame_idx=0,
             obj_id=1,
@@ -133,8 +135,8 @@ def segment_roi(
         unique_frames = np.unique(frames)
         for uf in unique_frames:
             frame_points = points[frames == uf, 1:]
-            frame_labels = labels[frames == uf]
-            predictor.add_new_points_or_box(
+            frame_labels = labels[frames == uf].astype(int)
+            _, _, out_mask_logits = predictor.add_new_points_or_box(
                 inference_state=inference_state,
                 frame_idx=uf,
                 obj_id=1,

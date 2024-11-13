@@ -303,7 +303,6 @@ class SAM2Widget(Container):
         image = util.img_as_float(image)
         init_frame = image[0].astype(np.float32)
         # init_frame = image[-1].astype(np.float32) # when is this relevant??
-
         self._mask_layer.data = np.zeros(
             (1, *init_frame.shape[-3:-1]), dtype=int
         )
